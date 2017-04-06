@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="https://aframe.io/releases/0.5.0/aframe.min.js"></script>
+  <script src="https://unpkg.com/aframe-animation-component@^3.2.0/dist/aframe-animation-component.min.js"></script>
+
+</head>
+<body>
+  <script>
+  AFRAME.registerComponent('glow-on-mouseenter', {
+    schema: {
+      to: {default: 2}
+    },
+    init: function () {
+      var pointLight = document.querySelector('a-light[type="point"]');
+      var data = this.data;
+      data.originalIntensity = pointLight.getAttribute("intensity");
+      console.log('glow-on-mouseenter init, pointLight: ', pointLight);
+      this.el.addEventListener('mouseenter', function () {
+        console.log('glow-on-mouseenter, mouseenter');
+        pointLight.setAttribute('intensity', data.to);
+      });
+      this.el.addEventListener('mouseleave', function () {
+        console.log('glow-on-mouseenter, mouseleave, resetting to: ', data.originalIntensity);
+        pointLight.setAttribute('intensity', data.originalIntensity);
+      });
+    }
+  });
+
+  AFRAME.registerComponent('linger-to-select', {
+    schema: {
+      url: { default: '#' },
+      light: { default: '' },
+      delay: { default: 2000 },
+      intensity: {default: 5}
+    },
+    init: function () {
+      var data = this.data;
+      let light = data.light && document.querySelector(data.light);
+      this._startTime = null;
+      console.log('linger-to-select, url: ', this.data.url);
+      data.originalIntensity = light.getAttribute("intensity");
+      this.el.addEventListener('mouseenter', () => {
+        if (this._timer) {
+          clearTimeout(this._timer);
+        }
+        this._timer = setTimeout(() => {
+          location.href = this.data.url;
+        }, data.delay);
+
+        console.log('adding animation component to light: ', data.light, light);
+        if (light) {
+          light.setAttribute('animation', {
+            property: 'intensity',
+            easing: 'linear',
+            to: data.intensity
+          });;
+        }
+      });
+      this.el.addEventListener('mouseleave', () => {
+        if (this._timer) {
+          clearTimeout(this._timer);
+        }
+        if (light) {
+          light.removeAttribute('animation');
+          light.setAttribute("intensity",data.originalIntensity);
+        }
+      });
+    }
+  });
+  </script>
+  <a-scene>
+    <a-assets>
+      <img src="boxTexture.jpg" id="boxTexture">
+      <img src="dry-desert--256.jpg" id="dirtTexture">
+      <img id="nightSkyTexture" src="night-sky-512.jpg">
+      <img id="skyTexture" src="SKY1A-Night-360.jpg">
+      <!--audio src="bg-loop.mp3" preload autoplay -->
+    </a-assets>
+    <!-- a-sound just gives me a components:sound:warn  All the sounds are playing. If you need to play more sounds simultaneously consider increasing the size of pool with the `poolSize` attribute error -->
+    <!-- a-sound src="src: url(bg-loop.mp3)" autoplay="true" position="0 2 5"></a-sound -->
+    <a-box src="#boxTexture"
+           position="0 0.5 -5" width="1" height="1" rotation="0 45 0" scale="1 1 1"
+           glow-on-mouseenter="to: 2"
+      >
+      <a-sphere
+        src="#nightSkyTexture" repeat="3 3 0" position="3 0.66 0"
+        animation="property: position; dir: alternate; dur: 1000;
+                             easing: easeInSine; loop: true; to: 3 2 0"
+        linger-to-select="url: http://www.sam-i-am.com/; light: #ambientLight; data: 5000"
+      >
+      </a-sphere>
+      <a-light type="point" intensity="0.1" position="0 3 0"></a-light>
+    </a-box>
+    <a-sky src="#skyTexture"></a-sky>
+    <a-plane src="#dirtTexture" rotation="-90 0 0" repeat="10 10" width="30" height="30"></a-plane>
+
+    <a-light type="ambient" id="ambientLight" intensity="1" color="#ff9900"></a-light>
+
+    <a-camera>
+      <a-cursor></a-cursor>
+    </a-camera>
+
+  </a-scene>
+
+</body>
+</html>
